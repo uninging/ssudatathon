@@ -41,8 +41,8 @@
     }
 
     .button:hover {
-      border-color: #FF5733;
-      color: #FF5733;
+      background-color: #007BFF;
+      color: white;
     }
 
     .file-actions {
@@ -90,6 +90,8 @@
 
     #selectButton {
       margin-top: 20px;
+      padding-top: 10px;
+      padding-bottom: 10px;
       width: 150px;
       height: 50px;
       display: flex;
@@ -236,7 +238,10 @@
             content.innerHTML = `
               <h1>파일 생성이 완료되었습니다!</h1>
               <p>FilteredBooks.xlsx 파일이 다운로드되었습니다.</p>
+              <button class="back-button" id="backToStartButton">처음으로 돌아가기</button>
             `;
+
+            document.getElementById("backToStartButton").addEventListener("click", renderInitialScreen);
           })
           .catch((error) => {
             content.innerHTML = `
@@ -251,6 +256,7 @@
 
     async function processFiles(file1, file2) {
       const [data1, data2] = await Promise.all([readExcel(file1), readExcel(file2)]);
+
       const books = data1.filter(row => row["소장위치"] === "4층인문");
 
       const threeYearsAgo = new Date();
