@@ -40,9 +40,10 @@
       transition: all 0.3s ease;
     }
 
+    /* 호버 시 배경색과 글자색 반전 */
     .button:hover {
-      border-color: #FF5733;
-      color: #FF5733;
+      background-color: #007BFF;
+      color: white;
     }
 
     .file-actions {
@@ -116,6 +117,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      transition: background-color 0.3s ease;
     }
 
     .back-button:hover {
@@ -216,13 +218,12 @@
         
         if (file1 && file2) {
           selectButton.style.display = "inline-block";
-          backButton.style.display = "none";  // 선정하기 버튼이 보이면 뒤로가기 버튼 숨김
+          backButton.style.display = "none";
         } else {
           selectButton.style.display = "none";
-          backButton.style.display = "inline-block";  // 선정하기 버튼이 안 보이면 뒤로가기 버튼 다시 보이게
+          backButton.style.display = "inline-block";
         }
       }
-
 
       selectButton.addEventListener("click", () => {
         if (file1 && file2) {
