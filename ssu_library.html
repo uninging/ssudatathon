@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSU Library Support</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .button {
+      padding: 15px;
+      font-size: 16px;
+      border: 2px solid #007BFF;
+      background-color: white;
+      color: #007BFF;
+      cursor: pointer;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 200px;
+      height: 110px;
+      flex-direction: column;
+      transition: all 0.3s ease;
+    }
+
+    .button:hover {
+      border-color: #FF5733;
+      color: #FF5733;
+    }
+
+    .file-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #007BFF;
+      border-radius: 10px;
+      padding: 20px;
+      width: 300px;
+      height: 80px;
+      text-align: center;
+      background-color: #ffffff;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    .drop-zone:hover {
+      background-color: #f0f8ff;
+    }
+
+    .drop-zone.dragover {
+      background-color: #e0f7fa;
+      border-color: #0056b3;
+    }
+
+    #fileContent {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      max-width: 500px;
+      text-align: left;
+    }
+
+    #selectButton {
+      margin-top: 20px;
+      width: 150px;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .file-list {
+      margin-top: 10px;
+      max-width: 500px;
+      text-align: left;
+    }
+
+    .file-item {
+      margin-bottom: 10px;
+    }
+
+    .back-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 14px;
+      color: #FFFFFF;
+      background-color: #007BFF;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .back-button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div id="content">
+    <div class="button-container">
+      <button class="button" id="button1">보존서고 이동 도서<br>탐색하기</button>
+      <button class="button" id="button2">서가로 복귀시킬 도서<br>탐색하기</button>
+    </div>
+    <h1>원하시는 작업을 선택하세요</h1>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    const content = document.getElementById("content");
+
+    function renderInitialScreen() {
+      content.innerHTML = `
+        <div class="button-container">
+          <button class="button" id="button1">보존서고 이동 도서<br>탐색하기</button>
+          <button class="button" id="button2">서가로 복귀시킬 도서<br>탐색하기</button>
+        </div>
+        <h1>원하시는 작업을 선택하세요</h1>
+      `;
+
+      document.getElementById("button1").addEventListener("click", () => renderFileSelectionScreen("보존서고로 이동시킬 책을 탐색합니다"));
+      document.getElementById("button2").addEventListener("click", () => renderFileSelectionScreen("서가로 복귀시킬 책을 탐색합니다"));
+    }
+
+    function renderFileSelectionScreen(title) {
+      content.innerHTML = `
+        <h1>${title}</h1>
+        <div class="file-actions">
+          <div class="drop-zone" id="dropZone1">
+            단행본(도서)정보.xlsx 파일을<br>드래그 앤 드롭하거나<br>클릭하여 선택하세요.
+          </div>
+          <input type="file" id="fileInput1" hidden />
+          <div class="drop-zone" id="dropZone2">
+            대출정보.xlsx 파일을<br>드래그 앤 드롭하거나<br>클릭하여 선택하세요.
+          </div>
+          <input type="file" id="fileInput2" hidden />
+        </div>
+        <button id="selectButton" class="button" style="display:none;">선정하기</button>
+        <button class="back-button" id="backButton">뒤로가기</button>
+      `;
+
+      document.getElementById("backButton").addEventListener("click", renderInitialScreen);
+      setupDragAndDrop("dropZone1", "fileInput1", "dropZone2", "fileInput2");
+    }
+
+    function setupDragAndDrop(dropZone1Id, fileInput1Id, dropZone2Id, fileInput2Id) {
+      const dropZone1 = document.getElementById(dropZone1Id);
+      const fileInput1 = document.getElementById(fileInput1Id);
+      const dropZone2 = document.getElementById(dropZone2Id);
+      const fileInput2 = document.getElementById(fileInput2Id);
+      const selectButton = document.getElementById("selectButton");
+
+      let file1 = null, file2 = null;
+
+      function handleFileSelection(fileInput, setFile, dropZone) {
+        fileInput.addEventListener("change", () => {
+          setFile(fileInput.files[0]);
+          dropZone.textContent = `${fileInput.files[0].name} 선택됨.`;
+          toggleSelectButton();
+        });
+
+        dropZone.addEventListener("click", () => fileInput.click());
+
+        dropZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          dropZone.classList.add("dragover");
+        });
+
+        dropZone.addEventListener("dragleave", () => {
+          dropZone.classList.remove("dragover");
+        });
+
+        dropZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropZone.classList.remove("dragover");
+          const file = e.dataTransfer.files[0];
+          setFile(file);
+          dropZone.textContent = `${file.name} 선택됨.`;
+          toggleSelectButton();
+        });
+      }
+
+      handleFileSelection(fileInput1, (file) => file1 = file, dropZone1);
+      handleFileSelection(fileInput2, (file) => file2 = file, dropZone2);
+
+      function toggleSelectButton() {
+        const selectButton = document.getElementById("selectButton");
+        const backButton = document.getElementById("backButton");
+        
+        if (file1 && file2) {
+          selectButton.style.display = "inline-block";
+          backButton.style.display = "none";  // 선정하기 버튼이 보이면 뒤로가기 버튼 숨김
+        } else {
+          selectButton.style.display = "none";
+          backButton.style.display = "inline-block";  // 선정하기 버튼이 안 보이면 뒤로가기 버튼 다시 보이게
+        }
+      }
+
+
+      selectButton.addEventListener("click", () => {
+        if (file1 && file2) {
+          content.innerHTML = `
+            <h1>생성 중입니다...</h1>
+            <p>잠시만 기다려 주세요.</p>
+          `;
+
+          processFiles(file1, file2)
+          .then(() => {
+            content.innerHTML = `
+              <h1>파일 생성이 완료되었습니다!</h1>
+              <p>FilteredBooks.xlsx 파일이 다운로드되었습니다.</p>
+            `;
+          })
+          .catch((error) => {
+            content.innerHTML = `
+              <h1>오류가 발생했습니다.</h1>
+              <p>파일을 다시 확인하고 시도해 주세요.</p>
+              <p>Error: ${error.message}</p>
+            `;
+          });
+        }
+      });
+    }
+
+    async function processFiles(file1, file2) {
+      const [data1, data2] = await Promise.all([readExcel(file1), readExcel(file2)]);
+      const books = data1.filter(row => row["소장위치"] === "4층인문");
+
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+      const loans = data2.filter(row => new Date(row["대출일시"]) >= threeYearsAgo);
+
+      const loanCounts = loans.reduce((acc, row) => {
+        acc[row["도서ID"]] = (acc[row["도서ID"]] || 0) + 1;
+        return acc;
+      }, {});
+
+      books.forEach(book => {
+        book["대출횟수"] = loanCounts[book["도서ID"]] || 0;
+      });
+
+      const groupedBooks = Object.values(books.reduce((acc, book) => {
+        if (!acc[book["ISBN"]]) {
+          acc[book["ISBN"]] = { ...book, "대출횟수": 0 };
+        }
+        acc[book["ISBN"]]["대출횟수"] += book["대출횟수"];
+        return acc;
+      }, {}));
+
+      const filteredBooks = groupedBooks.filter(book => {
+        const registrationDate = new Date(book["등록일자"]);
+        const fiveYearsAgo = new Date();
+        fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+        return registrationDate <= fiveYearsAgo && book["대출횟수"] <= 2;
+      });
+
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(filteredBooks);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "FilteredBooks");
+      XLSX.writeFile(workbook, "FilteredBooks.xlsx");
+    }
+
+    function readExcel(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+          resolve(json);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // Initialize the screen
+    renderInitialScreen();
+  </script>
+</body>
+</html>
