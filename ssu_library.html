@@ -238,7 +238,7 @@
           .then(() => {
             content.innerHTML = `
               <h1>파일 생성이 완료되었습니다!</h1>
-              <p>FilteredBooks.xlsx 파일이 다운로드되었습니다.</p>
+              <p>ClosedRepository.xlsx 파일이 다운로드되었습니다.</p>
               <button class="back-button" id="backToStartButton">처음으로 돌아가기</button>
             `;
 
@@ -262,7 +262,8 @@
 
       const threeYearsAgo = new Date();
       threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-      const loans = data2.filter(row => new Date(row["대출일시"]) >= threeYearsAgo);
+      const threeYearsAgoExcel = convertDateToExcelDate(threeYearsAgo); 
+      const loans = data2.filter(row => new Date(row["대출일시"]) >= threeYearsAgoExcel);
 
       const loanCounts = loans.reduce((acc, row) => {
         acc[row["도서ID"]] = (acc[row["도서ID"]] || 0) + 1;
@@ -282,16 +283,24 @@
       }, {}));
 
       const filteredBooks = groupedBooks.filter(book => {
-        const registrationDate = new Date(book["등록일자"]);
+        const registrationDateExcel = book["등록일자"];
         const fiveYearsAgo = new Date();
         fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-        return registrationDate <= fiveYearsAgo && book["대출횟수"] <= 2;
+        const fiveYearsAgoExcel = convertDateToExcelDate(fiveYearsAgo);
+        return registrationDateExcel <= fiveYearsAgoExcel && book["대출횟수"] <= 2;
       });
 
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(filteredBooks);
-      XLSX.utils.book_append_sheet(workbook, worksheet, "FilteredBooks");
-      XLSX.writeFile(workbook, "FilteredBooks.xlsx");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "ClosedRepository");
+      XLSX.writeFile(workbook, "ClosedRepository.xlsx");
+    }
+
+    // 자바스크립트 날짜를 엑셀 날짜로 변환하는 함수
+    function convertDateToExcelDate(date) {
+      const excelEpoch = new Date(1900, 0, 1); 
+      const timeDifference = date - excelEpoch; 
+      return Math.floor(timeDifference / (1000 * 60 * 60 * 24)) + 2; 
     }
 
     function readExcel(file) {
