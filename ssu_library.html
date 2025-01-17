@@ -296,6 +296,42 @@
       XLSX.writeFile(workbook, "ClosedRepository.xlsx");
     }
 
+    async function processFiles1(file1, file2) {
+      const [data1, data2] = await Promise.all([readExcel(file1), readExcel(file2)]);
+
+      const books = data1.filter(row => row["소장위치"] === "보존서고");
+
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+      const threeYearsAgoExcel = convertDateToExcelDate(threeYearsAgo); 
+      const loans = data2.filter(row => new Date(row["대출일시"]) >= threeYearsAgoExcel);
+
+      const loanCounts = loans.reduce((acc, row) => {
+        acc[row["도서ID"]] = (acc[row["도서ID"]] || 0) + 1;
+        return acc;
+      }, {});
+
+      books.forEach(book => {
+        book["대출횟수"] = loanCounts[book["도서ID"]] || 0;
+      });
+
+      const groupedBooks = Object.values(books.reduce((acc, book) => {
+        if (!acc[book["ISBN"]]) {
+          acc[book["ISBN"]] = { ...book, "대출횟수": 0 };
+        }
+        acc[book["ISBN"]]["대출횟수"] += book["대출횟수"];
+        return acc;
+      }, {}));
+
+      const filteredBooks = groupedBooks.filter(book => book["대출횟수"] >= 24);
+
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(filteredBooks);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "GoToBookshelf");
+      XLSX.writeFile(workbook, "GoToBookshelf.xlsx");
+    }
+
+
     // 자바스크립트 날짜를 엑셀 날짜로 변환하는 함수
     function convertDateToExcelDate(date) {
       const excelEpoch = new Date(1900, 0, 1); 
