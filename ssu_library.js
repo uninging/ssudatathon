@@ -98,7 +98,7 @@ const content = document.getElementById("content");
           .then(() => {
             content.innerHTML = `
               <h1>파일 생성이 완료되었습니다!</h1>
-              <p>ClosedRepository.xlsx 파일이 다운로드되었습니다.</p>
+              <p>GoToClosedRepository.xlsx 파일이 다운로드되었습니다.</p>
               <button class="back-button" id="backToStartButton">처음으로 돌아가기</button>
             `;
 
@@ -152,8 +152,8 @@ const content = document.getElementById("content");
 
       const workbook = XLSX.utils.book_new();
       const worksheet = XLSX.utils.json_to_sheet(filteredBooks);
-      XLSX.utils.book_append_sheet(workbook, worksheet, "ClosedRepository");
-      XLSX.writeFile(workbook, "ClosedRepository.xlsx");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "GoToClosedRepository");
+      XLSX.writeFile(workbook, "GoToClosedRepository.xlsx");
     }
 
     async function processFiles1(file1, file2) {
