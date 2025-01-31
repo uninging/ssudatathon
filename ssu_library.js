@@ -95,12 +95,12 @@ function setupDragAndDrop(dropZone1Id, fileInput1Id, dropZone2Id, fileInput2Id) 
     }
   }
   
-
   selectButton.addEventListener("click", () => {
     if (file1 && file2) {
       content.innerHTML = `
         <h1>생성 중입니다...</h1>
         <p>잠시만 기다려 주세요.</p>
+        <img src="https://github.com/uninging/ssudatathon/blob/main/Fading_circles.gif?raw=true" alt="로딩 중" />
       `;
       processFilesWrapper(file1, file2);
     }
@@ -114,6 +114,8 @@ async function processFilesWrapper(file1, file2) {
     } else {
       await processFiles1(file1, file2); // 서가로 복귀 조건 실행
     }
+    
+    // 파일 생성 완료 후 표시
     content.innerHTML = `
       <h1>파일 생성이 완료되었습니다!</h1>
       <p>파일이 다운로드되었습니다.</p>
@@ -121,6 +123,7 @@ async function processFilesWrapper(file1, file2) {
     `;
     document.getElementById("backToStartButton").addEventListener("click", renderInitialScreen);
   } catch (error) {
+    // 오류 발생 시 표시
     content.innerHTML = `
       <h1>오류 발생</h1>
       <p>${error.message}</p>
@@ -129,6 +132,38 @@ async function processFilesWrapper(file1, file2) {
     document.getElementById("backToStartButton").addEventListener("click", renderInitialScreen);
   }
 }
+
+async function processFilesWrapper(file1, file2) {
+  content.innerHTML = `
+    <h1>생성 중입니다...</h1>
+    <p>잠시만 기다려 주세요.</p>
+    <img src="https://raw.githubusercontent.com/uninging/ssudatathon/main/Fading_circles.gif" alt="로딩 중" style="display: block; margin: 0 auto;"/>
+  `;
+  try {
+    if (is_btn1) {
+      await processFiles(file1, file2); // 보존서고로 이동 조건 실행
+    } else {
+      await processFiles1(file1, file2); // 서가로 복귀 조건 실행
+    }
+    
+    // 파일 생성 완료 후 표시
+    content.innerHTML = `
+      <h1>파일 생성이 완료되었습니다!</h1>
+      <p>파일이 다운로드되었습니다.</p>
+      <button class="back-button" id="backToStartButton">처음으로 돌아가기</button>
+    `;
+    document.getElementById("backToStartButton").addEventListener("click", renderInitialScreen);
+  } catch (error) {
+    // 오류 발생 시 표시
+    content.innerHTML = `
+      <h1>오류 발생</h1>
+      <p>${error.message}</p>
+      <button class="back-button" id="backToStartButton">처음으로 돌아가기</button>
+    `;
+    document.getElementById("backToStartButton").addEventListener("click", renderInitialScreen);
+  }
+}
+
 
 async function processFiles(file1, file2) {
   const [data1, data2] = await Promise.all([readExcel(file1), readExcel(file2)]);
@@ -142,19 +177,27 @@ async function processFiles(file1, file2) {
   const loanCounts = loans.reduce((acc, row) => {
     acc[row["도서ID"]] = (acc[row["도서ID"]] || 0) + 1;
     return acc;
-  }, {});
+}, {});
 
-  books.forEach(book => {
+// 각 도서의 대출 횟수 추가
+books.forEach(book => {
     book["대출횟수"] = loanCounts[book["도서ID"]] || 0;
-  });
+});
 
-  const groupedBooks = Object.values(books.reduce((acc, book) => {
-    if (!acc[book["ISBN"]]) {
-      acc[book["ISBN"]] = { ...book, "대출횟수": 0 };
+// 도서 그룹화 (ISBN이 없을 경우 서명을 기준으로 그룹화)
+const groupedBooks = Object.values(books.reduce((acc, book) => {
+    const key = book["ISBN"] && book["ISBN"] !== "0" ? book["ISBN"] : book["서명"];
+
+    if (!acc[key]) {
+        acc[key] = { ...book, "대출횟수": 0 };
     }
-    acc[book["ISBN"]]["대출횟수"] += book["대출횟수"];
+    acc[key]["대출횟수"] += book["대출횟수"];
+
     return acc;
-  }, {}));
+}, {}));
+
+console.log(groupedBooks);
+
 
   const filteredBooks = groupedBooks.filter(book => {
     const registrationDateExcel = book["등록일자"];
@@ -181,17 +224,23 @@ async function processFiles1(file1, file2) {
     return acc;
   }, {});
 
-  books.forEach(book => {
+books.forEach(book => {
     book["대출횟수"] = loanCounts[book["도서ID"]] || 0;
-  });
+});
 
-  const groupedBooks = Object.values(books.reduce((acc, book) => {
-    if (!acc[book["ISBN"]]) {
-      acc[book["ISBN"]] = { ...book, "대출횟수": 0 };
+const groupedBooks = Object.values(books.reduce((acc, book) => {
+    const isbn = book["ISBN"];
+    const key = (isbn && isbn !== "0") ? isbn : book["서명"];  // ISBN이 없으면 서명을 키로 사용
+
+    if (!acc[key]) {
+        acc[key] = { ...book, "대출횟수": 0 };
     }
-    acc[book["ISBN"]]["대출횟수"] += book["대출횟수"];
+    acc[key]["대출횟수"] += book["대출횟수"];
     return acc;
-  }, {}));
+}, {}));
+
+console.log(groupedBooks);
+
 
   const filteredBooks = groupedBooks.filter(book => book["대출횟수"] >= 24);
 
@@ -199,33 +248,31 @@ async function processFiles1(file1, file2) {
 }
 
 function createExcelFile(data, fileName) {
-  const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-  XLSX.writeFile(workbook, fileName);
-}
-
-function convertDateToExcelDate(date) {
-  const excelEpoch = new Date(1900, 0, 1);
-  const timeDifference = date - excelEpoch;
-  return Math.floor(timeDifference / (1000 * 60 * 60 * 24)) + 2;
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+  XLSX.writeFile(wb, fileName);
 }
 
 function readExcel(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
+    reader.onload = () => {
+      const data = reader.result;
+      const workbook = XLSX.read(data, { type: "binary" });
       const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(worksheet);
-      resolve(json);
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      resolve(jsonData);
     };
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
+    reader.onerror = (error) => reject(error);
+    reader.readAsBinaryString(file);
   });
 }
 
-// Initialize the screen
+function convertDateToExcelDate(date) {
+  return Math.floor((date - new Date(1899, 11, 30)) / (1000 * 60 * 60 * 24));
+}
+
+// 초기 화면 렌더링
 renderInitialScreen();
