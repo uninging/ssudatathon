@@ -207,7 +207,7 @@ console.log(groupedBooks);
     return registrationDateExcel <= fiveYearsAgoExcel && book["대출횟수"] <= 2;
   });
 
-  createExcelFile(filteredBooks, "ClosedRepository.xlsx");
+  createExcelFile(filteredBooks, "GoToClosedRepository.xlsx");
 }
 
 async function processFiles1(file1, file2) {
